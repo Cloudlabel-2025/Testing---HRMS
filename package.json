@@ -23,6 +23,7 @@
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "mongodb": "^7.5.0",
     "mongoose": "^9.6.3",
     "next": "16.2.6",
     "nodemailer": "^9.0.3",

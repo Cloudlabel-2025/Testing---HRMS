@@ -55,7 +55,7 @@ async function main() {
 
   await mongoose.disconnect();
   console.log('\nNow call the seed endpoint:');
-  console.log('Invoke-RestMethod -Uri http://localhost:3000/api/seed/test-data -Method Post -ContentType "application/json" -Body \'{"setupToken":"setup_initial_bootstrap_token_change_immediately_after_first_use_12345678"}\'');
+  console.log('Invoke-RestMethod -Uri http://localhost:3000/api/seed/test-data -Method Post -ContentType "application/json" -Headers @{ "x-setup-token" = $env:SETUP_TOKEN }');
 }
 
 main().catch(console.error);
