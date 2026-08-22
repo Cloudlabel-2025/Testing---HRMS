@@ -13,7 +13,7 @@ export default function Topbar({ title, onMenuClick, isReadOnly }) {
   const router = useRouter();
   const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const { notifications, setNotifications, newsAnnouncements, pendingRequests } = useShellData();
+  const { notifications, setNotifications, refreshShellData, newsAnnouncements, pendingRequests } = useShellData();
   const notifRef = useRef(null);
   const profileRef = useRef(null);
 
@@ -73,7 +73,7 @@ export default function Topbar({ title, onMenuClick, isReadOnly }) {
         </button>
 
         <div style={{ position: 'relative' }} ref={notifRef}>
-          <button className="topbar-icon-btn" onClick={() => { setShowNotif(p => !p); setShowProfile(false); if (!showNotif) loadNotifs(); }}>
+          <button className="topbar-icon-btn" onClick={() => { setShowNotif(p => !p); setShowProfile(false); if (!showNotif) void refreshShellData(); }}>
             <i className="bi bi-bell" />
             {unreadCount > 0 && (
               <span style={{ position: 'absolute', top: 4, right: 4, width: 16, height: 16, borderRadius: '50%', background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

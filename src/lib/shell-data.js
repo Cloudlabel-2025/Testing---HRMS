@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
 
@@ -13,6 +13,32 @@ export function ShellDataProvider({ children }) {
   const [pendingRequests, setPendingRequests] = useState(0);
   const [employeeProfileId, setEmployeeProfileId] = useState(null);
 
+  const refreshShellData = useCallback(async () => {
+    if (!user) return;
+
+    const loadNotifications = api.get('/api/notifications')
+      .then(data => setNotifications(Array.isArray(data) ? data : []))
+      .catch(() => {});
+
+    const loadPendingRequests = ['super_admin', 'admin_full'].includes(user.role)
+      ? api.get('/api/core/self-service-requests?status=pending')
+        .then(data => setPendingRequests(Array.isArray(data?.requests) ? data.requests.length : 0))
+        .catch(() => {})
+      : Promise.resolve(setPendingRequests(0));
+
+    const loadAnnouncements = api.get('/api/announcements')
+      .then(data => {
+        const cutoff = Date.now() - (24 * 60 * 60 * 1000);
+        const announcements = Array.isArray(data?.announcements) ? data.announcements : [];
+        setNewsAnnouncements(announcements
+          .filter(announcement => new Date(announcement.createdAt).getTime() >= cutoff)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+      })
+      .catch(() => setNewsAnnouncements([]));
+
+    await Promise.all([loadNotifications, loadPendingRequests, loadAnnouncements]);
+  }, [user]);
+
   useEffect(() => {
     if (!user) {
       setNotifications([]);
@@ -24,53 +50,29 @@ export function ShellDataProvider({ children }) {
 
     let cancelled = false;
 
-    const loadNotifications = () => api.get('/api/notifications')
-      .then(data => { if (!cancelled) setNotifications(Array.isArray(data) ? data : []); })
-      .catch(() => {});
-
-    const loadPendingRequests = () => {
-      if (!['super_admin', 'admin_full'].includes(user.role)) {
-        if (!cancelled) setPendingRequests(0);
-        return Promise.resolve();
-      }
-      return api.get('/api/core/self-service-requests?status=pending')
-        .then(data => { if (!cancelled) setPendingRequests(Array.isArray(data?.requests) ? data.requests.length : 0); })
-        .catch(() => {});
-    };
-
-    const loadAnnouncements = () => api.get('/api/announcements')
-      .then(data => {
-        if (cancelled) return;
-        const cutoff = Date.now() - (24 * 60 * 60 * 1000);
-        const announcements = Array.isArray(data?.announcements) ? data.announcements : [];
-        setNewsAnnouncements(announcements
-          .filter(announcement => new Date(announcement.createdAt).getTime() >= cutoff)
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-      })
-      .catch(() => { if (!cancelled) setNewsAnnouncements([]); });
-
-    void Promise.all([loadNotifications(), loadPendingRequests(), loadAnnouncements()]);
+    void refreshShellData();
     api.get('/api/employees/me')
       .then(data => { if (!cancelled) setEmployeeProfileId(data?.employeeId || null); })
       .catch(() => {});
 
     const interval = setInterval(() => {
-      void Promise.all([loadNotifications(), loadPendingRequests(), loadAnnouncements()]);
+      void refreshShellData();
     }, 30000);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [user]);
+  }, [user, refreshShellData]);
 
   const value = useMemo(() => ({
     notifications,
     setNotifications,
+    refreshShellData,
     newsAnnouncements,
     pendingRequests,
     employeeProfileId,
-  }), [notifications, newsAnnouncements, pendingRequests, employeeProfileId]);
+  }), [notifications, refreshShellData, newsAnnouncements, pendingRequests, employeeProfileId]);
 
   return <ShellDataContext.Provider value={value}>{children}</ShellDataContext.Provider>;
 }

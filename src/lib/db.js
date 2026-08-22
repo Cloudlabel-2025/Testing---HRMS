@@ -28,6 +28,8 @@ async function dbConnect() {
   cached.promise = mongoose.connect(MONGODB_URI, {
     bufferCommands: false,
     family: 4,
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 5000,
   }).catch((err) => {
     cached.promise = null;
     cached.conn = null;

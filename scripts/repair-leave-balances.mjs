@@ -1,11 +1,12 @@
 import mongoose from 'mongoose';
+import { getMongoUri, mongoOptions } from './mongo-env.mjs';
 
-const uri = process.env.MONGODB_URI || 'mongodb+srv://rishivarshini7713_db_user:5fYuqh3MvGB2l69R@cluster0.mrllgn3.mongodb.net/?appName=Cluster0';
+const uri = getMongoUri();
 
 const EMPLOYER_ROLES = ['super_admin'];
 
 async function main() {
-  await mongoose.connect(uri);
+  await mongoose.connect(uri, mongoOptions);
   const db = mongoose.connection.db;
   const now = new Date();
 

@@ -1,12 +1,8 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import dotenv from 'dotenv';
-import path from 'path';
+import { getMongoUri, mongoOptions } from './mongo-env.mjs';
 
-// Load environment variables from .env.local
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
-
-const uri = process.env.MONGODB_URI || 'mongodb+srv://rishivarshini7713_db_user:5fYuqh3MvGB2l69R@cluster0.mrllgn3.mongodb.net/?appName=Cluster0';
+const uri = getMongoUri();
 
 const collections = [
   'users',
@@ -39,7 +35,7 @@ const collections = [
 
 async function main() {
   console.log('Connecting to database...');
-  await mongoose.connect(uri);
+  await mongoose.connect(uri, mongoOptions);
   const db = mongoose.connection.db;
 
   console.log('\n--- CLEARING ALL COLLECTIONS FOR UAT ---');

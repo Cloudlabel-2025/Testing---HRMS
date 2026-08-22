@@ -24,11 +24,25 @@ export async function POST(req) {
 
     await dbConnect();
 
-    const existing = await User.findOne({ role: 'super_admin' });
-    if (existing) return fail('Super admin already exists', 409);
-
     const { SEED_ADMIN_NAME, SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD } = process.env;
     if (!SEED_ADMIN_EMAIL || !SEED_ADMIN_PASSWORD) return fail('SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must be set in .env.local', 400);
+
+    const existing = await User.findOne({ role: 'super_admin' }).select('+password +loginAttempts +lockUntil');
+    if (existing) {
+      if (!body.resetSuperAdminPassword) return fail('Super admin already exists', 409);
+
+      existing.name = existing.name || SEED_ADMIN_NAME || 'Super Admin';
+      existing.email = SEED_ADMIN_EMAIL;
+      existing.password = SEED_ADMIN_PASSWORD;
+      existing.role = 'super_admin';
+      existing.status = 'active';
+      existing.loginAttempts = 0;
+      existing.lockUntil = null;
+      existing.isFirstLogin = false;
+      await existing.save();
+
+      return ok({ message: 'Super admin password reset', email: existing.email });
+    }
 
     const admin = await User.create({
       name: SEED_ADMIN_NAME || 'Super Admin',
@@ -36,6 +50,7 @@ export async function POST(req) {
       password: SEED_ADMIN_PASSWORD,
       role: 'super_admin',
       status: 'active',
+      isFirstLogin: false,
     });
 
     return ok({ message: 'Super admin created', email: admin.email }, 201);
