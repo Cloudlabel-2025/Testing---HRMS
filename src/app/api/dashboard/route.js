@@ -1,6 +1,6 @@
 import dbConnect from '@/lib/db';
 import { requireAuth } from '@/lib/middleware';
-import { ok } from '@/lib/jwt';
+import { fail, ok } from '@/lib/jwt';
 import Attendance from '@/lib/models/Attendance';
 import Leave from '@/lib/models/Leave';
 import { Task } from '@/lib/models/Task';
@@ -10,10 +10,11 @@ import { getAccessibleDepartments, getDepartmentUserIds } from '@/lib/rbac';
 import { computeWorkRowDuration } from '@/lib/attendance-constants';
 
 export async function GET(req) {
-  const { user, error } = await requireAuth(req);
-  if (error) return error;
+  try {
+    const { user, error } = await requireAuth(req);
+    if (error) return error;
 
-  await dbConnect();
+    await dbConnect();
 
   const today = new Date().toISOString().split('T')[0];
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
@@ -232,20 +233,23 @@ export async function GET(req) {
     ? await (await import('@/lib/models/index')).JobPosting.countDocuments({ status: 'active' })
     : 0;
 
-  return ok({
-    totalEmployees,
-    presentToday,
-    pendingLeaves,
-    myAttendanceThisMonth,
-    myPendingTasks,
-    myLeaveBalance,
-    openJobs,
-    lastPayslip: lastPayslip ? { net: lastPayslip.netPay, month: lastPayslip.month } : null,
-    monitoring,
-    overview: isSuperAdmin ? overview : null,
-    pendingTasks,
-    announcements: announcements.map(a => ({
-      id: a._id, title: a.title, body: a.body, tag: a.tag, tagColor: a.tagColor, date: a.createdAt, attachment: a.attachment,
-    })),
-  });
+    return ok({
+      totalEmployees,
+      presentToday,
+      pendingLeaves,
+      myAttendanceThisMonth,
+      myPendingTasks,
+      myLeaveBalance,
+      openJobs,
+      lastPayslip: lastPayslip ? { net: lastPayslip.netPay, month: lastPayslip.month } : null,
+      monitoring,
+      overview: isSuperAdmin ? overview : null,
+      pendingTasks,
+      announcements: announcements.map(a => ({
+        id: a._id, title: a.title, body: a.body, tag: a.tag, tagColor: a.tagColor, date: a.createdAt, attachment: a.attachment,
+      })),
+    });
+  } catch (e) {
+    return fail(e.message, 500);
+  }
 }

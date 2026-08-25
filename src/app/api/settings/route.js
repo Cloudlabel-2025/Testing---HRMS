@@ -131,13 +131,17 @@ function validateSettingsPayload(type, body, { isUpdate = false } = {}) {
 }
 
 export async function GET(req) {
-  const { error } = await requireAuth(req);
-  if (error) return error;
-  await dbConnect();
-  const type = new URL(req.url).searchParams.get('type');
-  if (!MODEL_MAP[type]) return fail('Invalid type', 400);
-  const data = await MODEL_MAP[type].find().sort({ name: 1 });
-  return ok(data);
+  try {
+    const { error } = await requireAuth(req);
+    if (error) return error;
+    await dbConnect();
+    const type = new URL(req.url).searchParams.get('type');
+    if (!MODEL_MAP[type]) return fail('Invalid type', 400);
+    const data = await MODEL_MAP[type].find().sort({ name: 1 });
+    return ok(data);
+  } catch (e) {
+    return fail(e.message, 500);
+  }
 }
 
 export async function POST(req) {

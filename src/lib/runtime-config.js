@@ -10,6 +10,11 @@ const REQUIRED_PRODUCTION_ENV = [
   'SMTP_FROM_EMAIL',
 ];
 
+const REQUIRED_RUNTIME_ENV = [
+  'MONGODB_URI',
+  'JWT_SECRET',
+];
+
 function isAllowedProductionAppUrl(value) {
   if (!value) return false;
   try {
@@ -38,6 +43,23 @@ export function assertProductionConfiguration() {
 
   if (missing.length) {
     throw new Error(`Production configuration is incomplete: ${[...new Set(missing)].join(', ')}`);
+  }
+}
+
+/**
+ * Checks only the values needed for ordinary authenticated API/database access.
+ * Optional integrations such as SMTP or cron must not take the whole app down.
+ */
+export function assertRuntimeConfiguration() {
+  if (process.env.NODE_ENV !== 'production') return;
+
+  const missing = REQUIRED_RUNTIME_ENV.filter(name => !process.env[name]?.trim());
+  if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
+    missing.push('JWT_SECRET (minimum 32 characters)');
+  }
+
+  if (missing.length) {
+    throw new Error(`Runtime configuration is incomplete: ${[...new Set(missing)].join(', ')}`);
   }
 }
 
